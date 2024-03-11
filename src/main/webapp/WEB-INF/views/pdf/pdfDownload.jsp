@@ -31,16 +31,19 @@
 }
 
 
+
+
 </style>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bluebird/3.7.2/bluebird.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.min.js"></script>
 <script src="https://unpkg.com/html2canvas@1.0.0-rc.5/dist/html2canvas.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
 	<div id="loader"><span>잠시만 기다려주세요...</span></div>
-	<button type="button" onclick="createPdf()">PDF 만들기</button>
+	<button type="button" onclick="createPdf()">이미지만 PDF 만들기</button>
 	<div class="wrap">
 		<div class="pdfArea">
 			<img src="${pageContext.request.contextPath }/resources/image/audi01.png">
@@ -60,24 +63,28 @@
 		<p>userId : <input type="text" id="userId" value="a001" name="userId"/></p>
 		<p>password : <input type="text" id="password" value="1234" name="password"/></p>
 	</form>
-	<button id="download">PDF다운로드</button>
+	<button id="download">PDF다운로드</button> 
 	
 	<!--캡처영역-->
     <div id="main_capture">
         <h3>A B C D E F G</h3>
     </div>
-    <button id="pick">캡쳐 Download</button> <!-- 영역만 캡쳐하기 -->
+    <button id="pick">캡쳐 Download</button> <!-- 영역만 캡쳐하기 --> <!-- 이것도 안나옴  -->
     
+    <!-- 현재 마지막 이미지가 짤림(페이지에 걸쳐서나옴)-->
 	<button id="captureBtn">전체화면 캡쳐 & pdf 다운로드</button>
 </body>
 <script type="text/javascript">
 
+
 var renderedImg = new Array;
 
 var contWidth = 200, // 너비(mm) (a4에 맞춤)
-		padding = 5; //상하좌우 여백(mm)
+	padding = 5; //상하좌우 여백(mm)
 
-// 이미지를 pdf로 만들기
+
+	
+//이미지를 pdf로 만들기
 function createPdf() { 
 	document.getElementById("loader").style.display = "block"; //로딩 시작
 
@@ -119,6 +126,8 @@ function createPdf() {
 	});
 }
 
+	
+
 function generateCanvas(i, doc, deferred, curImage){ //페이지를 이미지로 만들기
 	var pdfWidth = $(curImage).outerWidth() * 0.2645, //px -> mm로 변환
 			pdfHeight = $(curImage).outerHeight() * 0.2645,
@@ -153,28 +162,54 @@ $(function(){
             window.open(uri);
         }
     }
+    
+ 
 });
 
 $(document).ready(function(){
+	
     $("#captureBtn").click(function(){
-        captureAndDownloadPDF();
+    	setTimeout(function() {
+    		captureAndDownloadPDF();
+    		}, 100);
     });
 });
 
 function captureAndDownloadPDF() {
-    // 화면을 캡처하여 canvas에 그린다
-    html2canvas(document.body).then(function(canvas) {
-        // 캡처된 canvas를 PDF로 변환
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210; // A4 크기
-        const imgHeight = canvas.height * imgWidth / canvas.width;
+
+	html2canvas(document.body, {
+        scrollX: 0,
+        scrollY: 0,
+        scale: 2 // 적절한 스케일 조정
+    }).then(function (canvas) {
+        var imgData = canvas.toDataURL('image/png');
+        var doc = new jsPDF('p', 'mm', 'a4');
+
+        var imgWidth = 210; // A4 크기
+        var pageHeight = imgWidth * 1.414; // A4 비율
+        var imgHeight = canvas.height * imgWidth / canvas.width;
+        var heightLeft = imgHeight;
+        var position = 0;
+
         
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        
-        // PDF 파일을 다운로드
-        pdf.save("full_page_capture.pdf");
+        while (heightLeft >= 0) {
+            doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+            if (heightLeft > 0) {
+                doc.addPage(); // 다음 페이지 추가
+            }
+            position -= 297; // A4 페이지 크기
+        }
+
+        doc.save('full_Page_report.pdf');
     });
 }
+
+
+
+    
+    
+    
+
 </script>
 </html>
